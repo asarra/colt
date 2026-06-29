@@ -1,0 +1,181 @@
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    user: "1002:1002"
+    ports:
+      - "127.0.0.1:8001:80"
+    volumes:
+      - /var/srv/vaultwarden:/data
+
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:15
+    container_name: forgejo
+    restart: always
+    environment:
+      - USER_UID=1003
+      - USER_GID=1003
+    volumes:
+      - /var/srv/forgejo:/data
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - '127.0.0.1:3000:3000'
+      - '127.0.0.1:222:22'
+
+  # AI stack
+  ntfy:
+    image: docker.io/binwiederhier/ntfy:latest
+    container_name: ntfy
+    command: serve
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8091:80"
+    environment:
+      - NTFY_BASE_URL=http://localhost:8091
+    volumes:
+      - /var/srv/ntfy/cache:/var/cache/ntfy
+  odysseus:
+    image: ghcr.io/pewdiepie-archdaemon/odysseus:latest
+    container_name: odysseus
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7000:7000"
+    group_add:
+      - "999"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - LLM_HOST=localhost
+      - OLLAMA_BASE_URL=http://ollama-ai:11434
+      - SEARXNG_INSTANCE=http://searxng:8080
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - DATABASE_URL=sqlite:///./data/app.db
+      - AUTH_ENABLED=true
+      - PUID=1000
+      - PGID=1000
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - /var/srv/odysseus/data:/app/data:z
+      - /var/srv/odysseus/logs:/app/logs:z
+      - /var/srv/odysseus/data/ssh:/app/.ssh:z
+      - /var/srv/odysseus/data/huggingface:/app/.cache/huggingface:z
+      - /var/srv/odysseus/data/local:/app/.local:z
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      searxng:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+  chromadb:
+    image: docker.io/chromadb/chroma:latest
+    container_name: chromadb
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8100:8000"
+    environment:
+      - ANONYMIZED_TELEMETRY=FALSE
+    volumes:
+      - /var/srv/chromadb:/chroma/chroma
+  searxng:
+    image: docker.io/searxng/searxng
+    container_name: searxng
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        if [ ! -s /etc/searxng/settings.yml ]; then
+          secret="$$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          echo "use_default_settings: true" > /etc/searxng/settings.yml
+          echo "" >> /etc/searxng/settings.yml
+          echo "server:" >> /etc/searxng/settings.yml
+          echo "  secret_key: \"$$secret\"" >> /etc/searxng/settings.yml
+          echo "search:" >> /etc/searxng/settings.yml
+          echo "  formats:" >> /etc/searxng/settings.yml
+          echo "    - html" >> /etc/searxng/settings.yml
+          echo "    - json" >> /etc/searxng/settings.yml
+        fi
+        exec /usr/local/searxng/entrypoint.sh
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - /var/srv/searxng:/etc/searxng:z
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/', timeout=5).read(1)\""]
+      interval: 5s
+      timeout: 6s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+  ollama-ai:
+    image: docker.io/ollama/ollama:latest
+    container_name: ollama-ai
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - /var/srv/ollama:/root/.ollama
+
+  jellyfin:
+    image: docker.io/jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    user: "1004:1004"
+    ports:
+      - "127.0.0.1:8096:8096"
+      # - "127.0.0.1:7359:7359/udp"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - /var/srv/jellyfin/config:/config:z
+      - /var/srv/jellyfin/cache:/cache:z
+      - /var/srv/media:/media:z
+
+  uptime-kuma:
+    image: docker.io/louislam/uptime-kuma:2
+    container_name: uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - /var/srv/uptime-kuma:/app/data
+
+  stirling-pdf:
+    image: docker.io/stirlingtools/stirling-pdf:latest-fat
+    container_name: stirling-pdf
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8083:8080'
+    volumes:
+      - /var/srv/stirling-pdf:/configs
