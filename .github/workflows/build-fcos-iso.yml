@@ -1,0 +1,39 @@
+name: Build auto install iso
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Compile butane file and validate 
+      run: |
+        sudo podman run --rm -v $(pwd):/pwd:z -w /pwd quay.io/coreos/butane:release --strict config.bu > ./config.ign
+        podman pull quay.io/coreos/ignition-validate:release
+        sudo podman run --rm --interactive -v "${PWD}:/pwd" -w /pwd quay.io/coreos/ignition-validate:release ./config.ign
+    - uses: softprops/action-gh-release@v3
+      with:
+        tag_name: latest
+        files: ./config.ign
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Download iso and inject ignition file into iso
+      run: |
+        mkdir -p ./output
+        sudo podman run --rm -v $(pwd)/output:/data:z quay.io/coreos/coreos-installer:release download -p metal -f iso -C /data && sudo mv ./output/fedora-coreos-*.iso ./output/coreos.iso
+        IGNITION_URL="https://github.com/${{ github.repository }}/releases/download/latest/config.ign"
+        sudo podman run --rm -v $(pwd)/output:/data:z quay.io/coreos/coreos-installer:release iso kargs modify -a "coreos.inst.install_dev=/dev/sda coreos.inst.ignition_url=$IGNITION_URL" /data/coreos.iso
+        sudo chown -R $(id -u):$(id -g) ./output
+
+    - uses: actions/upload-artifact@v4
+      with:
+        path: output/coreos.iso
+        retention-days: 1
