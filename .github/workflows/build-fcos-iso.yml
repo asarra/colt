@@ -18,6 +18,7 @@ jobs:
         sudo podman run --rm -v $(pwd):/pwd:z -w /pwd quay.io/coreos/butane:release --strict config.bu > ./config.ign
         podman pull quay.io/coreos/ignition-validate:release
         sudo podman run --rm --interactive -v "${PWD}:/pwd" -w /pwd quay.io/coreos/ignition-validate:release ./config.ign
+
     - uses: softprops/action-gh-release@v3
       with:
         tag_name: latest
@@ -33,7 +34,9 @@ jobs:
         sudo podman run --rm -v $(pwd)/output:/data:z quay.io/coreos/coreos-installer:release iso kargs modify -a "coreos.inst.install_dev=/dev/sda coreos.inst.ignition_url=$IGNITION_URL" /data/coreos.iso
         sudo chown -R $(id -u):$(id -g) ./output
 
-    - uses: actions/upload-artifact@v4
+    - uses: softprops/action-gh-release@v3
       with:
-        path: output/coreos.iso
-        retention-days: 1
+        tag_name: latest
+        files: output/coreos.iso
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
