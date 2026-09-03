@@ -51,6 +51,46 @@ services:
               capabilities: [gpu]
     volumes:
       - /var/srv/ollama:/root/.ollama
+  searxng:
+    image: docker.io/searxng/searxng:latest
+    container_name: searxng
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        if [ ! -s /etc/searxng/settings.yml ]; then
+          secret="$$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          echo "use_default_settings: true" > /etc/searxng/settings.yml
+          echo "" >> /etc/searxng/settings.yml
+          echo "server:" >> /etc/searxng/settings.yml
+          echo "  secret_key: \"$$secret\"" >> /etc/searxng/settings.yml
+          echo "search:" >> /etc/searxng/settings.yml
+          echo "  formats:" >> /etc/searxng/settings.yml
+          echo "    - html" >> /etc/searxng/settings.yml
+          echo "    - json" >> /etc/searxng/settings.yml
+        fi
+        exec /usr/local/searxng/entrypoint.sh
+    ports:
+      - "127.0.0.1:9110:8080"
+    volumes:
+      - /var/srv/searxng:/etc/searxng:z
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8081/
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/', timeout=5).read(1)\""]
+      interval: 5s
+      timeout: 6s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
 
   stirling-pdf:
     image: docker.io/stirlingtools/stirling-pdf:latest-fat
