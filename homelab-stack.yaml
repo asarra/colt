@@ -142,35 +142,6 @@ services:
     volumes:
       - /var/srv/ollama:/root/.ollama
 
-  jellyfin:
-    image: docker.io/jellyfin/jellyfin:latest
-    container_name: jellyfin
-    restart: unless-stopped
-    user: "1004:1004"
-    ports:
-      - "127.0.0.1:8096:8096"
-      # - "127.0.0.1:7359:7359/udp"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    volumes:
-      - /var/srv/jellyfin/config:/config:z
-      - /var/srv/jellyfin/cache:/cache:z
-      - /var/srv/media:/media:z
-
-  uptime-kuma:
-    image: docker.io/louislam/uptime-kuma:2
-    container_name: uptime-kuma
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:3001:3001"
-    volumes:
-      - /var/srv/uptime-kuma:/app/data
-
   stirling-pdf:
     image: docker.io/stirlingtools/stirling-pdf:latest-fat
     container_name: stirling-pdf
