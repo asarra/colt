@@ -70,8 +70,8 @@ systemd:
         [Service]
         Type=oneshot
         RemainAfterExit=yes
-        ExecStartPre=/usr/bin/bash -c '/usr/bin/mkdir -p /var/srv/{ollama,searxng,chromadb,vaultwarden,forgejo,media,uptime-kuma,stirling-pdf} /var/srv/jellyfin/{config,cache} /var/srv/ntfy/cache /var/srv/odysseus/logs /var/srv/odysseus/data/{ssh,huggingface,local}'
-        ExecStartPre=/usr/bin/bash -c '/usr/bin/chown -R core:core /var/srv && /usr/bin/chown -R 1002:1002 /var/srv/vaultwarden && /usr/bin/chown -R 1003:1003 /var/srv/forgejo && /usr/bin/chown -R 1004:1004 /var/srv/{jellyfin,media}'
+        ExecStartPre=/usr/bin/bash -c '/usr/bin/mkdir -p /var/srv/{ollama,searxng,chromadb,vaultwarden,forgejo,stirling-pdf} /var/srv/ntfy/cache /var/srv/odysseus/logs /var/srv/odysseus/data/{ssh,huggingface,local}'
+        ExecStartPre=/usr/bin/bash -c '/usr/bin/chown -R core:core /var/srv && /usr/bin/chown -R 1002:1002 /var/srv/vaultwarden && /usr/bin/chown -R 1003:1003 /var/srv/forgejo && /usr/bin/chown'
         ExecStartPre=/usr/bin/chcon -Rt svirt_sandbox_file_t /var/srv
         ExecStart=/usr/bin/docker compose -f /etc/containers/systemd/homelab-stack.yaml up -d
         ExecStop=/usr/bin/docker compose -f /etc/containers/systemd/homelab-stack.yaml down
@@ -98,8 +98,6 @@ systemd:
         ExecStart=/usr/bin/tailscale serve --bg --tcp=8100 8100
         ExecStart=/usr/bin/tailscale serve --bg --tcp=8080 8080
         ExecStart=/usr/bin/tailscale serve --bg --tcp=11434 11434
-        ExecStart=/usr/bin/tailscale serve --bg --tcp=8096 8096
-        ExecStart=/usr/bin/tailscale serve --bg --tcp=3001 3001
         ExecStart=/usr/bin/tailscale serve --bg --tcp=8083 8083
         ExecStop=/usr/bin/tailscale serve reset
         [Install]
