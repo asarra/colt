@@ -70,7 +70,7 @@ systemd:
         [Service]
         Type=oneshot
         RemainAfterExit=yes
-        ExecStartPre=/usr/bin/bash -c '/usr/bin/mkdir -p /var/srv/{ollama,vaultwarden,forgejo,hermes,stirling-pdf}'
+        ExecStartPre=/usr/bin/bash -c '/usr/bin/mkdir -p /var/srv/{ollama,vaultwarden,forgejo,open-webui,stirling-pdf}'
         ExecStartPre=/usr/bin/bash -c '/usr/bin/chown -R core:core /var/srv && /usr/bin/chown -R 1002:1002 /var/srv/vaultwarden && /usr/bin/chown -R 1003:1003 /var/srv/forgejo'
         ExecStartPre=/usr/bin/chcon -Rt svirt_sandbox_file_t /var/srv
         ExecStart=/usr/bin/docker compose -f /etc/containers/systemd/homelab-stack.yaml up -d
