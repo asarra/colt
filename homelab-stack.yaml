@@ -79,7 +79,7 @@ services:
         fi
         exec /usr/local/searxng/entrypoint.sh
     ports:
-      - "127.0.0.1:9110:8080"
+      - "127.0.0.1:8080:8080"
     volumes:
       - /var/srv/searxng:/etc/searxng:z
     environment:
