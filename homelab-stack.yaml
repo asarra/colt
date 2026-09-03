@@ -24,23 +24,18 @@ services:
       - '127.0.0.1:222:22'
 
   # AI stack
-  hermes-agent:
-    image: docker.io/nousresearch/hermes-agent:latest
-    container_name: hermes-agent
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:9119:9119"
-    environment:
-      - HERMES_UID=1000
-      - HERMES_GID=1000
-      - OLLAMA_BASE_URL=http://ollama-ai:11434
-      - HERMES_DASHBOARD=1
-      - HERMES_DASHBOARD_HOST=127.0.0.1
-    volumes:
-      - /var/srv/hermes:/opt/data:z
-      - /var/run/docker.sock:/var/run/docker.sock:z
-    depends_on:
-      - ollama-ai
+  open-webui:
+   image: ghcr.io/open-webui/open-webui:main
+   container_name: open-webui
+   restart: unless-stopped
+   ports:
+     - "127.0.0.1:9119:8080"
+   environment:
+     - OLLAMA_BASE_URL=http://ollama-ai:11434
+   volumes:
+     - /var/srv/open-webui:/app/backend/data
+   depends_on:
+     - ollama-ai
   ollama-ai:
     image: docker.io/ollama/ollama:latest
     container_name: ollama-ai
