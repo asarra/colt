@@ -93,6 +93,7 @@ systemd:
         # We will use TCP forwards to not break subpaths
         ExecStart=/usr/bin/tailscale serve --bg --tcp=3000 3000
         ExecStart=/usr/bin/tailscale serve --bg --tcp=222 222
+        ExecStart=/usr/bin/tailscale serve --bg --tcp=8642 8642
         ExecStart=/usr/bin/tailscale serve --bg --tcp=8083 8083
         ExecStop=/usr/bin/tailscale serve reset
         [Install]
